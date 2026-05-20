@@ -10,9 +10,9 @@
  * Example of usage:
  * 
  * Suppose you have a temperature sensor and a humidity sensor and want to send updates
- * to multiple peripherals (e.g., display, serial, etc). You can create a subject for the temperature 
- * sensor and register peripherals callbacks to receive updates.
- * When the temperature changes, you can notify all registered observers with the new temperature value.
+ * to multiple peripherals (e.g., display, serial, etc). You can create a subject for each sensor 
+ * and register peripherals callbacks to receive updates.
+ * When the sensor value changes, you can notify all registered observers with the new sensor value.
  * 
  * First, include the observer.h header in your C file:
  * #include "observer.h"
@@ -63,19 +63,79 @@
 extern "C" {
 #endif
 
-#define MAX_OBSERVERS 10
-#define MAX_SUBJECTS 10
-
+/**
+ * @brief Opaque type for the subject.
+ * 
+ */
 typedef struct obs_subject_t obs_subject_t;
+
+/**
+ * @brief Type definition for the observer callback function.
+ * The callback function takes a void pointer as an argument, which can be used as an Abstract Data Type.
+ * We strongly recommend using a struct as the data type for the callback argument to ensure type safety and clarity in your code.
+ * 
+ */
 typedef void (*obs_callback_t)(void *data);
 
-void obs_module_init(void);
+/**
+ * @brief Status codes for the observer module functions.
+ * 
+ */
+typedef enum {
+    OBS_SUCCESS = 0,
+    OBS_ERROR_FULL = -1,
+    OBS_ERROR_NOT_FOUND = -2,
+    OBS_ERROR_INVALID = -3
+} obs_status_t;
 
+/**
+ * @brief Initializes the observer module. This function must be called before using any other functions in the module.
+ * @return obs_status_t Status of the initialization.
+ * 
+ */
+obs_status_t obs_module_init(void);
+
+/**
+ * @brief Creates a new subject and returns a pointer to it. The subject is used to manage the observers and notify them of updates.
+ * @return obs_subject_t* Pointer to the newly created subject, or NULL if the maximum number of subjects has been reached.
+ * 
+ */
 obs_subject_t * obs_subject_new(void);
-void obs_attatch(obs_subject_t *subject, obs_callback_t callback);
-void obs_detatch(obs_subject_t *subject, obs_callback_t callback);
-void obs_notify(obs_subject_t *subject, void *data);
-void obs_destroy(obs_subject_t *subject);
+
+/**
+ * @brief Attaches an observer callback to a subject. The callback will be called when the subject is notified of an update.
+ * @param subject Pointer to the subject to which the observer will be attached.
+ * @param callback Pointer to the callback function to be attached.
+ * @return obs_status_t Status of the attachment.
+ * 
+ */
+obs_status_t obs_attatch(obs_subject_t *subject, obs_callback_t callback);
+
+/**
+ * @brief Detaches an observer callback from a subject.
+ * @param subject Pointer to the subject from which the observer will be detached.
+ * @param callback Pointer to the callback function to be detached.
+ * @return obs_status_t Status of the detachment.
+ * 
+ */
+obs_status_t obs_detatch(obs_subject_t *subject, obs_callback_t callback);
+
+/**
+ * @brief Notifies all observers of a subject about an update.
+ * @param subject Pointer to the subject that will notify its observers.
+ * @param data Pointer to the data to be passed to the observers.
+ * @return obs_status_t Status of the notification.
+ * 
+ */
+obs_status_t obs_notify(obs_subject_t *subject, void *data);
+
+/**
+ * @brief Destroys a subject and releases its resources.
+ * @param subject Pointer to the subject to be destroyed.
+ * @return obs_status_t Status of the destruction.
+ * 
+ */
+obs_status_t obs_destroy(obs_subject_t *subject);
 
 #if defined(__cplusplus)
 }

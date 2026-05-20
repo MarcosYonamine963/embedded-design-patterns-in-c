@@ -1,5 +1,5 @@
 /**
- * @file observer_main.c
+ * @file observer2_main.c
  * @author Marcos Yonamine
  * 
  * This file is a simple example of how to implement the observer pattern in C.
@@ -10,7 +10,7 @@
  * When the sensor values change, you can notify all registered observers with the new values.
  * 
  * Compile on windows with the following command:
- * gcc observer_main.c ../observer/observer.c -o main.exe
+ * gcc observer2_main.c ../observer/observer.c -o main.exe
  * 
  */
 
@@ -20,51 +20,39 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+// #####  Notification structure to hold the data to be sent to the observers ######
+typedef struct
+{
+    char type[20]; // type of the notification (e.g., "temperature", "humidity", etc)
+    float value; // value of the notification (e.g., temperature value, humidity value, etc)
+}notification_t;
+
 
 // #####  Callback Functions for the peripherals to handle updates ######
 
-void display_update_temperature(void *data)
+void display_update(void *data)
 {
-    float temp = *(float *)(data);
-    printf("[DISPLAY] Temperature updated: %.1f\n", temp);
+    notification_t *notif = (notification_t *)(data);
+    printf("[DISPLAY] %s updated: %.1f\n", notif->type, notif->value);
 }
 
-void serial_update_temperature(void *data)
+void serial_update(void *data)
 {
-    float temp = *(float *)(data);
-    printf("[SERIAL] Temperature updated: %.1f\n", temp);
+    notification_t *notif = (notification_t *)(data);
+    printf("[SERIAL] %s updated: %.1f\n", notif->type, notif->value);
 }
 
-void logger_update_temperature(void *data)
+void logger_update(void *data)
 {
-    float temp = *(float *)(data);
-    printf("[LOGGER] Temperature updated: %.1f\n", temp);
-}
-
-
-void display_update_humidity(void *data)
-{
-    float humidity = *(float *)(data);
-    printf("[DISPLAY] Humidity updated: %.1f\n", humidity);
-}
-
-void serial_update_humidity(void *data)
-{
-    float humidity = *(float *)(data);
-    printf("[SERIAL] Humidity updated: %.1f\n", humidity);
-}
-
-void logger_update_humidity(void *data)
-{
-    float humidity = *(float *)(data);
-    printf("[LOGGER] Humidity updated: %.1f\n", humidity);
+    notification_t *notif = (notification_t *)(data);
+    printf("[LOGGER] %s updated: %.1f\n", notif->type, notif->value);
 }
 
 // #######  Main function ########
 
 int main(void)
 {
-    printf("Observer Pattern Example\n");
+    printf("Observer Pattern Example 2\n");
 
     // init the observer module
     obs_status_t status = obs_module_init();
@@ -91,19 +79,19 @@ int main(void)
     }
 
     // register peripherals to receive temperature updates
-    status = obs_attatch(temp_subject, display_update_temperature);
+    status = obs_attatch(temp_subject, display_update);
     if (status != OBS_SUCCESS) 
     {
         printf("Failed to attach display observer to temperature subject.\n");
         return -1;
     }
-    status = obs_attatch(temp_subject, serial_update_temperature);
+    status = obs_attatch(temp_subject, serial_update);
     if (status != OBS_SUCCESS) 
     {
         printf("Failed to attach serial observer to temperature subject.\n");
         return -1;
     }
-    status = obs_attatch(temp_subject, logger_update_temperature);
+    status = obs_attatch(temp_subject, logger_update);
     if (status != OBS_SUCCESS) 
     {
         printf("Failed to attach logger observer to temperature subject.\n");
@@ -111,13 +99,13 @@ int main(void)
     }
 
     // for humidiy, we only want to send updates to the display and logger, not serial
-    status = obs_attatch(humidity_subject, display_update_humidity);
+    status = obs_attatch(humidity_subject, display_update);
     if (status != OBS_SUCCESS) 
     {
         printf("Failed to attach display observer to humidity subject.\n");
         return -1;
     }
-    status = obs_attatch(humidity_subject, logger_update_humidity);
+    status = obs_attatch(humidity_subject, logger_update);
     if (status != OBS_SUCCESS) 
     {
         printf("Failed to attach logger observer to humidity subject.\n");
@@ -132,13 +120,15 @@ int main(void)
         temperature += i * 1.5; // simulate a temperature change
         humidity +=  i * 0.7; // simulate a humidity change
         printf("\r\nUpdating temperature to %.1f and humidity to %.1f...\n", temperature, humidity);
-        status = obs_notify(temp_subject, (void *)&temperature); // notify all registered peripherals of the temperature update
+        notification_t temp_notif = {"Temperature", temperature};
+        status = obs_notify(temp_subject, (void *)&temp_notif); // notify all registered peripherals of the temperature update
         if (status != OBS_SUCCESS) 
         {
             printf("Failed to notify temperature updates.\n");
             return -1;
         }
-        status = obs_notify(humidity_subject, (void *)&humidity); // notify all registered peripherals of the humidity update
+        notification_t humidity_notif = {"Humidity", humidity};
+        status = obs_notify(humidity_subject, (void *)&humidity_notif); // notify all registered peripherals of the humidity update
         if (status != OBS_SUCCESS) 
         {
             printf("Failed to notify humidity updates.\n");
@@ -149,7 +139,7 @@ int main(void)
 
     // detach the serial observer from the temperature updates
     // (let's say we don't want to send temperature updates to serial anymore)
-    status = obs_detatch(temp_subject, serial_update_temperature);
+    status = obs_detatch(temp_subject, serial_update);
     if (status != OBS_SUCCESS) 
     {
         printf("Failed to detach serial observer from temperature subject.\n");
@@ -162,7 +152,8 @@ int main(void)
     {
         temperature += i * 1.2; // simulate a temperature change
         printf("\r\nUpdating temperature to %.1f...\n", temperature);
-        status = obs_notify(temp_subject, (void *)&temperature); // notify all registered peripherals of the temperature update
+        notification_t temp_notif = {"Temperature", temperature};
+        status = obs_notify(temp_subject, (void *)&temp_notif); // notify all registered peripherals of the temperature update
         if (status != OBS_SUCCESS) 
         {
             printf("Failed to notify temperature updates.\n");
